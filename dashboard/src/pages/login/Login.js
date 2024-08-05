@@ -16,6 +16,7 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
+  Spinner,
 } from "@chakra-ui/react";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
@@ -31,10 +32,12 @@ const Login = () => {
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerError, setRegisterError] = useState("");
   const [registerSuccess, setRegisterSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [registerLoading, setRegisterLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    console.log(process.env.REACT_APP_API_URL);
+    setLoading(true);
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/auth/login`,
@@ -46,16 +49,21 @@ const Login = () => {
       if (response.data.success) {
         login();
         sessionStorage.setItem("token", response.data.token); // Save the token in session storage
+        sessionStorage.setItem("userData", JSON.stringify(response.data.data));
+        console.log(JSON.stringify(response.data.data));
         navigate("/home"); // Redirect to the home page
       } else {
         setError(response.data.message);
       }
     } catch (error) {
       setError("An error occurred during login. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleRegister = async () => {
+    setRegisterLoading(true);
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/auth/register`,
@@ -67,6 +75,7 @@ const Login = () => {
       if (response.data.success) {
         setRegisterSuccess("Registration successful. Please login.");
         setRegisterError("");
+        onClose(); // Close the modal
       } else {
         setRegisterError(response.data.message);
         setRegisterSuccess("");
@@ -76,6 +85,8 @@ const Login = () => {
         "An error occurred during registration. Please try again."
       );
       setRegisterSuccess("");
+    } finally {
+      setRegisterLoading(false);
     }
   };
 
@@ -90,6 +101,7 @@ const Login = () => {
       bg="var(--primary-white)"
     >
       <Box textAlign="center" mb={5}>
+        {/* <Logo /> */}
         <Heading mb={5} color="var(--primary-gray)">
           Login
         </Heading>
@@ -118,8 +130,9 @@ const Login = () => {
           width="full"
           bg="var(--primary-green)"
           color="var(--primary-white)"
+          disabled={loading}
         >
-          Login
+          {loading ? <Spinner size="sm" /> : "Login"}
         </Button>
         <Text color="var(--primary-gray)">
           Don't have an account?{" "}
@@ -167,8 +180,9 @@ const Login = () => {
               onClick={handleRegister}
               bg="var(--primary-green)"
               color="var(--primary-white)"
+              disabled={registerLoading}
             >
-              Register
+              {registerLoading ? <Spinner size="sm" /> : "Register"}
             </Button>
           </ModalFooter>
         </ModalContent>

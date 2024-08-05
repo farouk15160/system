@@ -40,11 +40,24 @@ const checkUserAuth = async (username, password) => {
       expiresIn: "4h",
     }
   );
+  const usernameFolder = username.split("@")[0];
+
+  const filePath = path.join(
+    __dirname,
+    "../../data",
+    usernameFolder,
+    `${usernameFolder}.json`
+  );
+
+  let userData = null;
+  if (fs.existsSync(filePath)) {
+    userData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  }
 
   return {
     status: 200,
     success: true,
-    data: null,
+    data: userData,
     message: "Authentication successful",
     token: token,
   };
@@ -52,8 +65,10 @@ const checkUserAuth = async (username, password) => {
 
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
+  const usernameLower = username.toLowerCase();
+
   const { status, success, data, message, token } = await checkUserAuth(
-    username,
+    usernameLower,
     password
   );
 
@@ -66,7 +81,42 @@ router.post("/login", async (req, res) => {
   });
 });
 
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 const registerUser = async (username, password) => {
+  if (!username || !password) {
+    return {
+      status: 400,
+      success: false,
+      data: null,
+      message: "Email and password are required.",
+      token: null,
+    };
+  }
+
+  if (!isValidEmail(username)) {
+    return {
+      status: 400,
+      success: false,
+      data: null,
+      message: "Invalid email format.",
+      token: null,
+    };
+  }
+
+  if (password.length < 8) {
+    return {
+      status: 400,
+      success: false,
+      data: null,
+      message: "Password must be at least 8 characters long.",
+      token: null,
+    };
+  }
+
   const existingUser = users.find((u) => u.username === username);
 
   if (existingUser) {
@@ -125,8 +175,9 @@ const registerUser = async (username, password) => {
 
 router.post("/register", async (req, res) => {
   const { username, password } = req.body;
+  const usernameLower = username.toLowerCase();
   const { status, success, data, message, token } = await registerUser(
-    username,
+    usernameLower,
     password
   );
 

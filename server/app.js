@@ -3,6 +3,7 @@ const app = express();
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const loginRoute = require("./api/routes/login");
+const uploadRoutes = require("./api/routes/upload");
 
 app.use(bodyParser.json());
 app.use(
@@ -14,5 +15,6 @@ app.use(
 );
 
 app.use("/auth", loginRoute);
+app.use("/upload", uploadRoutes);
 
 module.exports = app;

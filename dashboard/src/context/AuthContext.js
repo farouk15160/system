@@ -11,15 +11,24 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(
     !!sessionStorage.getItem("token")
   );
+  const [userData, setUserData] = useState(
+    JSON.parse(sessionStorage.getItem("userData")) || {}
+  );
 
-  const login = () => setIsAuthenticated(true);
+  const login = (data) => {
+    setIsAuthenticated(true);
+    setUserData(data);
+  };
+
   const logout = () => {
     setIsAuthenticated(false);
+    setUserData({});
     sessionStorage.removeItem("token");
+    sessionStorage.removeItem("userData");
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout, userData }}>
       {children}
     </AuthContext.Provider>
   );
