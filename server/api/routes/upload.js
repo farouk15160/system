@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const xlsx = require("xlsx");
 const fs = require("fs");
 const path = require("path");
+const { spawn } = require("child_process");
 const users = require("../../users.json");
 
 const storage = multer.memoryStorage();
@@ -13,7 +13,6 @@ router.use(express.json());
 
 router.post("/:username", upload.single("file"), async (req, res) => {
   const { username } = req.params;
-  console.log(username);
   const normalizedUsername = username.toLowerCase();
 
   // Find user by username
@@ -47,19 +46,6 @@ router.post("/:username", upload.single("file"), async (req, res) => {
     });
   }
 
-  let data;
-  if (fileType === ".xlsx") {
-    const workbook = xlsx.read(buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    data = xlsx.utils.sheet_to_json(worksheet);
-  } else if (fileType === ".csv") {
-    data = buffer
-      .toString("utf-8")
-      .split("\n")
-      .map((line) => line.split(","));
-  }
-
   // Save the file to the user's folder
   const userFolder = path.join(__dirname, "../../data", normalizedUsername);
   if (!fs.existsSync(userFolder)) {
@@ -68,11 +54,34 @@ router.post("/:username", upload.single("file"), async (req, res) => {
   const filePath = path.join(userFolder, originalname);
   fs.writeFileSync(filePath, buffer);
 
-  res.status(200).json({
-    status: 200,
-    success: true,
-    message: "File uploaded successfully.",
-    data: data,
+  // Call the Python script
+  const python = spawn("python3.10.exe", ["plot.py", filePath]); // Use the correct executable name
+
+  let svgData = "";
+
+  python.stdout.on("data", (data) => {
+    svgData += data.toString();
+  });
+
+  python.stderr.on("data", (data) => {
+    console.error(`stderr: ${data}`);
+  });
+
+  python.on("close", (code) => {
+    if (code === 0) {
+      res.status(200).json({
+        status: 200,
+        success: true,
+        message: "File uploaded and processed successfully.",
+        data: svgData,
+      });
+    } else {
+      res.status(500).json({
+        status: 500,
+        success: false,
+        message: "Failed to process the file.",
+      });
+    }
   });
 });
 

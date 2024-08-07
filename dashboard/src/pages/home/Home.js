@@ -14,6 +14,7 @@ import {
   IconButton,
   VStack,
   Spinner,
+  Image,
 } from "@chakra-ui/react";
 import * as XLSX from "xlsx";
 import { DeleteIcon } from "@chakra-ui/icons";
@@ -29,6 +30,7 @@ const Home = () => {
   const [fileData, setFileData] = useState([]);
   const [fileName, setFileName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [plotedData, setPlotedData] = useState(null);
 
   const handleFileUpload = (event) => {
     const uploadedFile = event.target.files[0];
@@ -88,6 +90,8 @@ const Home = () => {
         }
       );
       if (response.data.success) {
+        console.log(response.data);
+        setPlotedData(response.data.data);
         toast({
           title: "File uploaded successfully",
           status: "success",
@@ -168,6 +172,16 @@ const Home = () => {
               >
                 Upload Data
               </Button>
+            </>
+          )}
+          {plotedData && (
+            <>
+              <div>
+                <Heading fontWeight="bold" as="h1">
+                  SVG Plot
+                </Heading>
+                <div dangerouslySetInnerHTML={{ __html: plotedData }} />
+              </div>
             </>
           )}
         </VStack>
