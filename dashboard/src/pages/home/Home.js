@@ -13,12 +13,15 @@ import {
   Button,
   IconButton,
   VStack,
-  Spinner,
-  Image,
+  Radio,
+  RadioGroup,
+  HStack,
+  Flex,
+  Select,
+  Checkbox,
 } from "@chakra-ui/react";
 import * as XLSX from "xlsx";
 import { DeleteIcon } from "@chakra-ui/icons";
-// import Navbar from "../components/Navbar";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 
@@ -30,7 +33,11 @@ const Home = () => {
   const [fileData, setFileData] = useState([]);
   const [fileName, setFileName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const [plotedData, setPlotedData] = useState(null);
+  const [plotedData, setPlotedData] = useState([]);
+  const [yAxisKey, setYAxisKey] = useState("");
+  const [plotType, setPlotType] = useState("single");
+  const [graphType, setGraphType] = useState("line");
+  const [savePlot, setSavePlot] = useState(false);
 
   const handleFileUpload = (event) => {
     const uploadedFile = event.target.files[0];
@@ -58,6 +65,12 @@ const Home = () => {
     }
   };
 
+  const handleCellChange = (rowIndex, key, value) => {
+    const updatedData = [...fileData];
+    updatedData[rowIndex][key] = value;
+    setFileData(updatedData);
+  };
+
   const handleRemoveFile = () => {
     setFile(null);
     setFileData([]);
@@ -70,12 +83,53 @@ const Home = () => {
     });
   };
 
+  const handleResetPlots = () => {
+    setPlotedData([]);
+    setFile(null);
+    setFileData([]);
+    setFileName("");
+    setYAxisKey("");
+    setPlotType("single");
+    setGraphType("line");
+    setSavePlot(false);
+  };
+
   const handleUpload = async () => {
     if (!file) return;
 
+    if (!yAxisKey) {
+      toast({
+        title: "Y-Axis selection required",
+        description: "Please select a Y-Axis column before uploading.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     setIsUploading(true);
+
+    // Create a new workbook and sheet from the edited data
+    const worksheet = XLSX.utils.json_to_sheet(fileData);
+    const newWorkbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(newWorkbook, worksheet, "Sheet1");
+
+    // Convert the workbook to a binary array
+    const binaryData = XLSX.write(newWorkbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const newFile = new Blob([binaryData], {
+      type: "application/octet-stream",
+    });
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", newFile, fileName);
+    formData.append("y_axis_key", yAxisKey);
+    formData.append("plot_type", plotType);
+    formData.append("graph_type", graphType);
+    formData.append("save_plot", savePlot);
 
     try {
       const response = await axios.post(
@@ -89,18 +143,22 @@ const Home = () => {
           },
         }
       );
+
       if (response.data.success) {
-        console.log(response.data);
-        setPlotedData(response.data.data);
+        const data = response.data.data;
+
+        if (Array.isArray(data)) {
+          setPlotedData(data);
+        } else {
+          setPlotedData([data]);
+        }
+
         toast({
           title: "File uploaded successfully",
           status: "success",
           duration: 3000,
           isClosable: true,
         });
-        setFile(null);
-        setFileData([]);
-        setFileName("");
       } else {
         toast({
           title: "Upload failed",
@@ -146,43 +204,94 @@ const Home = () => {
               <Box overflowX="auto" width="100%">
                 <Table variant="striped" colorScheme="teal" size="sm">
                   <Thead>
+                    <Th>Choose the Y-Axis</Th>
                     <Tr>
                       {fileData.length > 0 &&
-                        Object.keys(fileData[0]).map((key) => (
-                          <Th key={key}>{key}</Th>
+                        Object.keys(fileData[0]).map((key, index) => (
+                          <Th key={key}>
+                            <HStack>
+                              <Radio
+                                value={key}
+                                isChecked={yAxisKey === key}
+                                onChange={() => setYAxisKey(key)}
+                              />
+                              <Box>{key}</Box>
+                            </HStack>
+                          </Th>
                         ))}
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {fileData.map((row, index) => (
-                      <Tr key={index}>
-                        {Object.values(row).map((cell, cellIndex) => (
-                          <Td key={cellIndex}>{cell}</Td>
+                    {fileData.map((row, rowIndex) => (
+                      <Tr key={rowIndex}>
+                        {Object.entries(row).map(([key, value], cellIndex) => (
+                          <Td key={cellIndex}>
+                            <Input
+                              type="number"
+                              value={value}
+                              onChange={(e) =>
+                                handleCellChange(rowIndex, key, e.target.value)
+                              }
+                            />
+                          </Td>
                         ))}
                       </Tr>
                     ))}
                   </Tbody>
                 </Table>
               </Box>
+              <RadioGroup
+                onChange={setPlotType}
+                value={plotType}
+                mt={3}
+                alignSelf="flex-start"
+              >
+                <HStack spacing={5}>
+                  <Radio value="single">Single Plot</Radio>
+                  <Radio value="multiple">Multiple Plots</Radio>
+                </HStack>
+              </RadioGroup>
+              <Select
+                placeholder="Select Graph Type"
+                onChange={(e) => setGraphType(e.target.value)}
+                value={graphType}
+                mt={3}
+                alignSelf="flex-start"
+              >
+                <option value="line">Line Plot</option>
+                <option value="scatter">Scatter Plot</option>
+                <option value="bar">Bar Plot</option>
+              </Select>
+              <Checkbox
+                isChecked={savePlot}
+                onChange={(e) => setSavePlot(e.target.checked)}
+                mt={3}
+                alignSelf="flex-start"
+              >
+                Save Plot
+              </Checkbox>
               <Button
                 colorScheme="teal"
                 onClick={handleUpload}
                 isLoading={isUploading}
                 loadingText="Uploading"
+                mt={3}
               >
                 Upload Data
               </Button>
+              {plotedData.length > 0 && (
+                <Button colorScheme="red" onClick={handleResetPlots} mt={3}>
+                  Reset Plots
+                </Button>
+              )}
             </>
           )}
-          {plotedData && (
-            <>
-              <div>
-                <Heading fontWeight="bold" as="h1">
-                  SVG Plot
-                </Heading>
-                <div dangerouslySetInnerHTML={{ __html: plotedData }} />
-              </div>
-            </>
+          {plotedData.length > 0 && (
+            <VStack spacing={5} mt={5}>
+              {plotedData.map((svg, index) => (
+                <Box key={index} dangerouslySetInnerHTML={{ __html: svg }} />
+              ))}
+            </VStack>
           )}
         </VStack>
       </Box>
