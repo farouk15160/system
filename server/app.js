@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const loginRoute = require("./api/routes/login");
 const uploadRoutes = require("./api/routes/upload");
+const fetchRoutes = require("./api/routes/fetch");
 
 app.use(bodyParser.json());
 app.use(
@@ -16,5 +17,6 @@ app.use(
 
 app.use("/auth", loginRoute);
 app.use("/upload", uploadRoutes);
+app.use("/fetch", fetchRoutes);
 
 module.exports = app;

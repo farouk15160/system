@@ -6,6 +6,7 @@ import {
   FiLogOut,
   FiMenu,
   FiChevronLeft,
+  FiSave,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -59,8 +60,24 @@ const Navbar = ({ isExpanded, setIsExpanded }) => {
           justifyContent={isExpanded ? "flex-start" : "center"}
           color="gray.200"
           _hover={{ bg: "gray.600", color: "white" }}
+          onClick={() => {
+            navigate("/home");
+          }}
         >
           {isExpanded && "Home"}
+        </Button>
+        <Button
+          w="full"
+          leftIcon={<FiSave />}
+          variant="ghost"
+          justifyContent={isExpanded ? "flex-start" : "center"}
+          color="gray.200"
+          _hover={{ bg: "gray.600", color: "white" }}
+          onClick={() => {
+            navigate("/saved");
+          }}
+        >
+          {isExpanded && "Saved"}
         </Button>
         <Button
           w="full"
@@ -68,6 +85,9 @@ const Navbar = ({ isExpanded, setIsExpanded }) => {
           variant="ghost"
           justifyContent={isExpanded ? "flex-start" : "center"}
           color="gray.200"
+          onClick={() => {
+            navigate("/home");
+          }}
           _hover={{ bg: "gray.600", color: "white" }}
         >
           {isExpanded && "Upload"}

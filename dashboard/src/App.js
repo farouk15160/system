@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { Box, Flex } from "@chakra-ui/react";
 import Login from "./pages/login/Login";
 import Home from "./pages/home/Home";
+import Saved from "./pages/home/Saved";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import PublicRoute from "./components/PublicRoute";
@@ -29,6 +30,17 @@ const App = () => {
                 <Navbar isExpanded={isExpanded} setIsExpanded={setIsExpanded} />
                 <Container isExpanded={isExpanded}>
                   <Home />
+                </Container>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/saved"
+            element={
+              <PrivateRoute>
+                <Navbar isExpanded={isExpanded} setIsExpanded={setIsExpanded} />
+                <Container isExpanded={isExpanded}>
+                  <Saved />
                 </Container>
               </PrivateRoute>
             }

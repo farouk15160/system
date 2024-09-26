@@ -16,14 +16,14 @@ import {
   Radio,
   RadioGroup,
   HStack,
-  Flex,
   Select,
-  Checkbox,
 } from "@chakra-ui/react";
 import * as XLSX from "xlsx";
 import { DeleteIcon } from "@chakra-ui/icons";
-import axios from "axios";
+import Plot from "react-plotly.js";
 import { useAuth } from "../../context/AuthContext";
+
+import axios from "axios"; // Import axios
 
 const Home = () => {
   const toast = useToast();
@@ -32,12 +32,10 @@ const Home = () => {
   const [file, setFile] = useState(null);
   const [fileData, setFileData] = useState([]);
   const [fileName, setFileName] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-  const [plotedData, setPlotedData] = useState([]);
   const [yAxisKey, setYAxisKey] = useState("");
   const [plotType, setPlotType] = useState("single");
   const [graphType, setGraphType] = useState("line");
-  const [savePlot, setSavePlot] = useState(false);
+  const [plotedData, setPlotedData] = useState([]);
 
   const handleFileUpload = (event) => {
     const uploadedFile = event.target.files[0];
@@ -75,6 +73,8 @@ const Home = () => {
     setFile(null);
     setFileData([]);
     setFileName("");
+    setYAxisKey("");
+    setPlotedData([]);
     toast({
       title: "File removed",
       status: "info",
@@ -83,24 +83,13 @@ const Home = () => {
     });
   };
 
-  const handleResetPlots = () => {
-    setPlotedData([]);
-    setFile(null);
-    setFileData([]);
-    setFileName("");
-    setYAxisKey("");
-    setPlotType("single");
-    setGraphType("line");
-    setSavePlot(false);
-  };
-
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (!file) return;
 
     if (!yAxisKey) {
       toast({
         title: "Y-Axis selection required",
-        description: "Please select a Y-Axis column before uploading.",
+        description: "Please select a Y-Axis column before plotting.",
         status: "warning",
         duration: 3000,
         isClosable: true,
@@ -108,76 +97,66 @@ const Home = () => {
       return;
     }
 
-    setIsUploading(true);
+    const plotData = [];
+    for (const column of Object.keys(fileData[0])) {
+      if (column !== yAxisKey) {
+        const xValues = fileData.map((row) => row[column]);
+        const yValues = fileData.map((row) => row[yAxisKey]);
+        const plot = {
+          x: xValues,
+          y: yValues,
+          type: graphType,
+          mode: graphType === "scatter" ? "markers" : undefined,
+          name: `${yAxisKey} vs ${column}`,
+        };
+        plotData.push(plot);
+      }
+    }
 
-    // Create a new workbook and sheet from the edited data
-    const worksheet = XLSX.utils.json_to_sheet(fileData);
-    const newWorkbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(newWorkbook, worksheet, "Sheet1");
+    setPlotedData(plotData);
+  };
 
-    // Convert the workbook to a binary array
-    const binaryData = XLSX.write(newWorkbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    const newFile = new Blob([binaryData], {
-      type: "application/octet-stream",
-    });
-    const formData = new FormData();
-    formData.append("file", newFile, fileName);
-    formData.append("y_axis_key", yAxisKey);
-    formData.append("plot_type", plotType);
-    formData.append("graph_type", graphType);
-    formData.append("save_plot", savePlot);
+  const handleSave = async () => {
+    if (!fileData.length) {
+      toast({
+        title: "No data to save",
+        description: "Please upload a file and plot the data first.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
 
     try {
+      // Send the fileData to your API
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/upload/${
           userData.username.split("@")[0]
         }`,
-        formData,
         {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+          y_axis_key: "temperature",
+          plot_type: "single",
+          graph_type: "line",
+          data: fileData, // Ensure fileData is formatted correctly for the server
         }
       );
 
-      if (response.data.success) {
-        const data = response.data.data;
-
-        if (Array.isArray(data)) {
-          setPlotedData(data);
-        } else {
-          setPlotedData([data]);
-        }
-
-        toast({
-          title: "File uploaded successfully",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-      } else {
-        toast({
-          title: "Upload failed",
-          description: response.data.message,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
+      toast({
+        title: "Data saved successfully",
+        description: response.data.message, // Adjust according to your API response
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
     } catch (error) {
       toast({
-        title: "Upload failed",
-        description: error.response.data.message,
+        title: "Error saving data",
+        description: error.message || "Something went wrong!",
         status: "error",
         duration: 3000,
         isClosable: true,
       });
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -207,7 +186,7 @@ const Home = () => {
                     <Th>Choose the Y-Axis</Th>
                     <Tr>
                       {fileData.length > 0 &&
-                        Object.keys(fileData[0]).map((key, index) => (
+                        Object.keys(fileData[0]).map((key) => (
                           <Th key={key}>
                             <HStack>
                               <Radio
@@ -262,25 +241,18 @@ const Home = () => {
                 <option value="scatter">Scatter Plot</option>
                 <option value="bar">Bar Plot</option>
               </Select>
-              <Checkbox
-                isChecked={savePlot}
-                onChange={(e) => setSavePlot(e.target.checked)}
-                mt={3}
-                alignSelf="flex-start"
-              >
-                Save Plot
-              </Checkbox>
-              <Button
-                colorScheme="teal"
-                onClick={handleUpload}
-                isLoading={isUploading}
-                loadingText="Uploading"
-                mt={3}
-              >
-                Upload Data
+              <Button colorScheme="teal" onClick={handleUpload} mt={3}>
+                Plot Data
+              </Button>
+              <Button colorScheme="blue" onClick={handleSave} mt={3}>
+                Save Data
               </Button>
               {plotedData.length > 0 && (
-                <Button colorScheme="red" onClick={handleResetPlots} mt={3}>
+                <Button
+                  colorScheme="red"
+                  onClick={() => setPlotedData([])}
+                  mt={3}
+                >
                   Reset Plots
                 </Button>
               )}
@@ -288,9 +260,44 @@ const Home = () => {
           )}
           {plotedData.length > 0 && (
             <VStack spacing={5} mt={5}>
-              {plotedData.map((svg, index) => (
-                <Box key={index} dangerouslySetInnerHTML={{ __html: svg }} />
-              ))}
+              {plotType === "single" ? (
+                <Box
+                  width="100%"
+                  borderWidth={1}
+                  borderRadius="lg"
+                  overflow="hidden"
+                >
+                  <Plot
+                    data={plotedData}
+                    layout={{
+                      title: "Data Visualization",
+                      xaxis: { title: "X-Axis" },
+                      yaxis: { title: yAxisKey },
+                    }}
+                    config={{ responsive: true }}
+                  />
+                </Box>
+              ) : (
+                plotedData.map((data, index) => (
+                  <Box
+                    key={index}
+                    width="100%"
+                    borderWidth={1}
+                    borderRadius="lg"
+                    overflow="hidden"
+                  >
+                    <Plot
+                      data={[data]} // Plot only one data set
+                      layout={{
+                        title: data.name,
+                        xaxis: { title: "X-Axis" },
+                        yaxis: { title: yAxisKey },
+                      }}
+                      config={{ responsive: true }}
+                    />
+                  </Box>
+                ))
+              )}
             </VStack>
           )}
         </VStack>
