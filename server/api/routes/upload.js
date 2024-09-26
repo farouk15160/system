@@ -32,7 +32,8 @@ router.post("/:username", upload.single("file"), async (req, res) => {
     // Write the received data to a JSON file
     fs.writeFileSync(
       filePath,
-      JSON.stringify({ y_axis_key, plot_type, graph_type, data }, null, 2)
+      // JSON.stringify({ y_axis_key, plot_type, graph_type, data }, null, 2)
+      JSON.stringify({ data }, null, 2)
     );
 
     res.status(200).json({ message: "Data saved successfully", filePath });

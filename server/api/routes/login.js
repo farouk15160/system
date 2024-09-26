@@ -80,6 +80,22 @@ router.post("/login", async (req, res) => {
     token: token,
   });
 });
+router.post("/register", async (req, res) => {
+  const { username, password } = req.body;
+  const usernameLower = username.toLowerCase();
+  const { status, success, data, message, token } = await registerUser(
+    usernameLower,
+    password
+  );
+
+  res.status(status).json({
+    status: status,
+    success: success,
+    data: data,
+    message: message,
+    token: token,
+  });
+});
 
 const isValidEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -172,22 +188,5 @@ const registerUser = async (username, password) => {
     token: token,
   };
 };
-
-router.post("/register", async (req, res) => {
-  const { username, password } = req.body;
-  const usernameLower = username.toLowerCase();
-  const { status, success, data, message, token } = await registerUser(
-    usernameLower,
-    password
-  );
-
-  res.status(status).json({
-    status: status,
-    success: success,
-    data: data,
-    message: message,
-    token: token,
-  });
-});
 
 module.exports = router;

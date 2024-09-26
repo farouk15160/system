@@ -94,9 +94,7 @@ router.delete("/:username/delete", async (req, res) => {
 // New endpoint to fetch the contents of a specific file
 router.get("/:username/file/:filename", async (req, res) => {
   const { username, filename } = req.params;
-  console.log("_____________________________________________________");
-  console.log(filename);
-  console.log("_____________________________________________________");
+
   const normalizedUsername = username.toLowerCase();
   const userDir = path.join(
     __dirname,
