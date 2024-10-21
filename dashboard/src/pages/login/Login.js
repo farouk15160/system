@@ -81,8 +81,9 @@ const Login = () => {
         setRegisterSuccess("");
       }
     } catch (error) {
+      const message = JSON.stringify(error.response.data.message)
       setRegisterError(
-        "An error occurred during registration. Please try again."
+        `An error occurred during registration. Please try again. ${message}`
       );
       setRegisterSuccess("");
     } finally {
