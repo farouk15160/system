@@ -47,10 +47,8 @@ const Login = () => {
         }
       );
       if (response.data.success) {
-        login();
-        sessionStorage.setItem("token", response.data.token); // Save the token in session storage
-        sessionStorage.setItem("userData", JSON.stringify(response.data.data));
-        console.log(JSON.stringify(response.data.data));
+        login(response.data.token, response.data.data);
+        console.log("UserData after login:", response.data.data);
         navigate("/home"); // Redirect to the home page
       } else {
         setError(response.data.message);
