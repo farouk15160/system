@@ -48,7 +48,6 @@ const Login = () => {
       );
       if (response.data.success) {
         login(response.data.token, response.data.data);
-        console.log("UserData after login:", response.data.data);
         navigate("/home"); // Redirect to the home page
       } else {
         setError(response.data.message);

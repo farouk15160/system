@@ -1,10 +1,9 @@
+# ide configuration
 .idea
 
+# packages
 **/node_modules/
 **/package-lock.json
 
-# data
-server/data
-
-# users
-server/users.json
+# database
+server/database/
