@@ -1,0 +1,9 @@
+# ide configuration
+.idea
+
+# packages
+**/node_modules/
+**/package-lock.json
+
+# database
+server/database/

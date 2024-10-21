@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 // Create a context
 const AuthContext = createContext();
@@ -8,21 +8,32 @@ export const useAuth = () => useContext(AuthContext);
 
 // AuthProvider component
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    !!sessionStorage.getItem("token")
-  );
-  const [userData, setUserData] = useState(
-    JSON.parse(sessionStorage.getItem("userData")) || {}
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userData, setUserData] = useState(null);
 
-  const login = (data) => {
+  useEffect(() => {
+    const token = sessionStorage.getItem("token");
+    const storedUserData = sessionStorage.getItem("userData");
+
+    if (token) {
+      setIsAuthenticated(true);
+    }
+
+    if (storedUserData) {
+      setUserData(JSON.parse(storedUserData));
+    }
+  }, []);
+
+  const login = (token, data) => {
     setIsAuthenticated(true);
     setUserData(data);
+    sessionStorage.setItem("token", token);
+    sessionStorage.setItem("userData", JSON.stringify(data));
   };
 
   const logout = () => {
     setIsAuthenticated(false);
-    setUserData({});
+    setUserData(null);
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("userData");
   };

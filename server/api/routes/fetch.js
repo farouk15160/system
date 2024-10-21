@@ -3,16 +3,16 @@ const router = express.Router();
 const fs = require("fs");
 const path = require("path");
 
+// Define constants for database paths
+const DATABASE_DIR = path.join(__dirname, "../../database");
+
 router.use(express.json());
 
 // Fetch saved files
 router.get("/:username", async (req, res) => {
   const { username } = req.params;
   const normalizedUsername = username.toLowerCase();
-  const userDir = path.join(
-    __dirname,
-    `../../data/${normalizedUsername}/saved`
-  );
+  const userDir = path.join(DATABASE_DIR, `${normalizedUsername}/saved`);
 
   try {
     const files = fs.readdirSync(userDir);
@@ -40,10 +40,7 @@ router.put("/:username/edit", async (req, res) => {
   const { username } = req.params;
   const { oldFilename, newFilename } = req.body;
   const normalizedUsername = username.toLowerCase();
-  const userDir = path.join(
-    __dirname,
-    `../../data/${normalizedUsername}/saved`
-  );
+  const userDir = path.join(DATABASE_DIR, `${normalizedUsername}/saved`);
 
   // Construct full file paths
   const oldFilePath = path.join(userDir, oldFilename);
@@ -71,10 +68,7 @@ router.delete("/:username/delete", async (req, res) => {
   const { username } = req.params;
   const { filename } = req.body; // Filename to delete
   const normalizedUsername = username.toLowerCase();
-  const userDir = path.join(
-    __dirname,
-    `../../data/${normalizedUsername}/saved`
-  );
+  const userDir = path.join(DATABASE_DIR, `${normalizedUsername}/saved`);
 
   // Construct full file path
   const filePath = path.join(userDir, filename);
@@ -96,10 +90,7 @@ router.get("/:username/file/:filename", async (req, res) => {
   const { username, filename } = req.params;
 
   const normalizedUsername = username.toLowerCase();
-  const userDir = path.join(
-    __dirname,
-    `../../data/${normalizedUsername}/saved`
-  );
+  const userDir = path.join(DATABASE_DIR, `${normalizedUsername}/saved`);
 
   // Construct full file path
   const filePath = path.join(userDir, filename);

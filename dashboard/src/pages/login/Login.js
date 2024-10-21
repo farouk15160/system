@@ -47,10 +47,7 @@ const Login = () => {
         }
       );
       if (response.data.success) {
-        login();
-        sessionStorage.setItem("token", response.data.token); // Save the token in session storage
-        sessionStorage.setItem("userData", JSON.stringify(response.data.data));
-        console.log(JSON.stringify(response.data.data));
+        login(response.data.token, response.data.data);
         navigate("/home"); // Redirect to the home page
       } else {
         setError(response.data.message);
@@ -81,8 +78,9 @@ const Login = () => {
         setRegisterSuccess("");
       }
     } catch (error) {
+      const message = JSON.stringify(error.response.data.message)
       setRegisterError(
-        "An error occurred during registration. Please try again."
+        `An error occurred during registration. Please try again. ${message}`
       );
       setRegisterSuccess("");
     } finally {
