@@ -5,3 +5,6 @@
 
 # data
 server/data
+
+# users
+server/users.json
