@@ -3,11 +3,60 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const bodyParser = require("body-parser");
-const fs = require("fs");
+const fs = require("fs").promises;
 const path = require("path");
-const users = require("../../users.json");
+
+// Define constants for database paths
+const DATABASE_DIR = path.join(__dirname, "../../database");
+const USERS_FILE = path.join(DATABASE_DIR, "users.json");
 
 router.use(bodyParser.json());
+
+async function ensureFileExists(filePath, initialContent = '') {
+  try {
+    // Check if the file exists
+    await fs.access(filePath);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      try {
+        await fs.mkdir(path.dirname(filePath), { recursive: true });
+        await fs.writeFile(filePath, initialContent);
+      } catch (createError) {
+        console.error(`Error creating file: ${createError.message}`);
+        throw createError;
+      }
+    } else {
+      console.error(`Error checking file: ${error.message}`);
+      throw error;
+    }
+  }
+}
+
+async function readJSONFile(filePath) {
+  try {
+    const data = await fs.readFile(filePath, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error(`Error reading JSON file: ${error.message}`);
+    throw error;
+  }
+}
+
+async function writeJSONFile(filePath, data) {
+  try {
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error(`Error writing JSON file: ${error.message}`);
+    throw error;
+  }
+}
+
+let users = [];
+
+async function initializeUsers() {
+  await ensureFileExists(USERS_FILE, '[]');
+  users = await readJSONFile(USERS_FILE);
+}
 
 const checkUserAuth = async (username, password) => {
   const user = users.find((u) => u.username === username);
@@ -42,16 +91,13 @@ const checkUserAuth = async (username, password) => {
   );
   const usernameFolder = username.split("@")[0];
 
-  const filePath = path.join(
-    __dirname,
-    "../../data",
-    usernameFolder,
-    `${usernameFolder}.json`
-  );
+  const filePath = path.join(DATABASE_DIR, usernameFolder, `${usernameFolder}.json`);
 
   let userData = null;
-  if (fs.existsSync(filePath)) {
-    userData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  try {
+    userData = await readJSONFile(filePath);
+  } catch (error) {
+    console.error(`Error reading user data: ${error.message}`);
   }
 
   return {
@@ -155,22 +201,17 @@ const registerUser = async (username, password) => {
   users.push(newUser);
 
   // Save the updated users array to the JSON file
-  fs.writeFileSync(
-    path.join(__dirname, "../../users.json"),
-    JSON.stringify(users, null, 2)
-  );
+  await writeJSONFile(USERS_FILE, users);
 
   // Create a folder named after the username (without the domain part)
   const usernameFolder = username.split("@")[0];
-  const folderPath = path.join(__dirname, "../../data", usernameFolder);
+  const folderPath = path.join(DATABASE_DIR, usernameFolder);
 
-  if (!fs.existsSync(folderPath)) {
-    fs.mkdirSync(folderPath);
-  }
+  await fs.mkdir(folderPath, { recursive: true });
 
   // Create a JSON file inside the folder
   const filePath = path.join(folderPath, `${usernameFolder}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(newUser, null, 2));
+  await writeJSONFile(filePath, newUser);
 
   const token = jwt.sign(
     { id: newUser.id, username: newUser.username },
@@ -188,5 +229,11 @@ const registerUser = async (username, password) => {
     token: token,
   };
 };
+
+// Initialize users when the module is loaded
+initializeUsers().catch(error => {
+  console.error('Failed to initialize users:', error);
+  process.exit(1);
+});
 
 module.exports = router;

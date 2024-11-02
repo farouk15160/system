@@ -7,6 +7,9 @@ const path = require("path");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+// Define constants for database paths
+const DATABASE_DIR = path.join(__dirname, "../../database");
+
 router.use(express.json());
 
 router.post("/:username", upload.single("file"), async (req, res) => {
@@ -15,10 +18,7 @@ router.post("/:username", upload.single("file"), async (req, res) => {
   const normalizedUsername = username.toLowerCase();
 
   // Create user-specific directory if it doesn't exist
-  const userDir = path.join(
-    __dirname,
-    `../../data/${normalizedUsername}/saved`
-  );
+  const userDir = path.join(DATABASE_DIR, `${normalizedUsername}/saved`);
   if (!fs.existsSync(userDir)) {
     fs.mkdirSync(userDir, { recursive: true });
   }
